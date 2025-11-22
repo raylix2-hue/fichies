@@ -1,379 +1,113 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>P2P File Share — iOS26 Style</title>
-  <style>
-    /* === iOS 26 glassmorphism style (transparent + flou) === */
-    :root{
-      --glass-bg: rgba(255,255,255,0.08);
-      --card-bg: rgba(255,255,255,0.06);
-      --accent: rgba(255,255,255,0.9);
-      --muted: rgba(255,255,255,0.75);
-      --radius: 18px;
-      --glass-blur: 14px;
-      --shadow: 0 8px 30px rgba(2,6,23,0.45);
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Envoi de fichiers P2P</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background: rgba(255,255,255,0.2);
+        backdrop-filter: blur(10px);
+        margin: 0; padding: 0;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        height: 100vh;
     }
-    html,body{height:100%;margin:0;background:linear-gradient(135deg,#071423 0%, #0b1b2b 100%);color:var(--accent);}
-    .bg-anim{position:fixed;inset:0;filter:blur(40px) saturate(120%);opacity:0.9;}
-    .container{max-width:980px;margin:48px auto;padding:28px;border-radius:24px;background:var(--glass-bg);backdrop-filter: blur(var(--glass-blur));box-shadow:var(--shadow);}
-
-    header{display:flex;align-items:center;gap:16px;margin-bottom:18px}
-    .logo{width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.04));display:flex;align-items:center;justify-content:center;font-weight:700}
-    h1{font-size:20px;margin:0}
-    p.lead{margin:0;color:var(--muted);font-size:13px}
-
-    .row{display:flex;gap:18px}
-    .col{flex:1}
-
-    .card{padding:18px;border-radius:16px;background:var(--card-bg);backdrop-filter: blur(10px);}
-    input, button{font-size:15px;padding:12px 14px;border-radius:12px;border:0;outline:none}
-    input{background:rgba(255,255,255,0.03);color:var(--accent)}
-    .search{display:flex;gap:8px;align-items:center}
-
-    .user-list{max-height:280px;overflow:auto;margin-top:12px}
-    .user{display:flex;justify-content:space-between;align-items:center;padding:10px;border-radius:10px;cursor:pointer}
-    .user:hover{background:rgba(255,255,255,0.02)}
-    .user .name{font-weight:600}
-    .user .meta{font-size:12px;color:var(--muted)}
-
-    .actions{display:flex;gap:12px;align-items:center;margin-top:12px}
-    .btn{background:linear-gradient(90deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));color:var(--accent);cursor:pointer;padding:10px 14px;border-radius:12px}
-
-    /* popup code */
-    .popup{position:fixed;left:50%;top:20%;transform:translateX(-50%);min-width:320px;padding:18px;border-radius:14px;background:rgba(10,14,20,0.86);box-shadow:0 14px 40px rgba(2,6,23,0.6);border:1px solid rgba(255,255,255,0.03);z-index:999}
-    .code{font-family:monospace;font-size:20px;background:rgba(255,255,255,0.03);padding:8px 10px;border-radius:10px;display:inline-block}
-    .muted{color:rgba(255,255,255,0.7);font-size:13px}
-
-    .progress{height:10px;background:rgba(255,255,255,0.03);border-radius:8px;overflow:hidden}
-    .progress > i{display:block;height:100%;width:0%;background:linear-gradient(90deg, rgba(255,255,255,0.18), rgba(255,255,255,0.7));}
-
-    footer{margin-top:18px;color:var(--muted);font-size:13px}
-
-    /* small screens */
-    @media(max-width:760px){.container{margin:18px;padding:14px}}
-  </style>
+    input, button {
+        padding: 10px;
+        margin: 5px;
+        border-radius: 8px;
+        border: 1px solid #ccc;
+    }
+    .user-list { margin-top: 20px; }
+    .user { cursor: pointer; padding: 5px; }
+    .popup { position: fixed; top: 30%; left: 50%; transform: translate(-50%, -50%);
+             background: white; padding: 20px; border-radius: 12px; display: none; box-shadow: 0 0 15px rgba(0,0,0,0.3);}
+</style>
 </head>
 <body>
-  <div class="bg-anim" aria-hidden>
-    <svg width="100%" height="100%" preserveAspectRatio="none" viewBox="0 0 800 600">
-      <defs>
-        <linearGradient id="g1" x1="0" x2="1"><stop offset="0" stop-color="#2b2bff" stop-opacity="0.18"/><stop offset="1" stop-color="#00e6b8" stop-opacity="0.12"/></linearGradient>
-      </defs>
-      <rect x="-50" y="-50" width="900" height="700" fill="url(#g1)"/>
-    </svg>
-  </div>
 
-  <div class="container card" id="app">
-    <header>
-      <div class="logo">FS</div>
-      <div>
-        <h1>AirShare — Envoi P2P</h1>
-        <p class="lead">Style iOS 26 · Transfert direct entre appareils (Wi‑Fi / Hotspot)</p>
-      </div>
-    </header>
+<h2>Envoi de fichiers P2P</h2>
 
-    <div class="row">
-      <div class="col card">
-        <label class="muted">Ton pseudo (visible par les autres)</label>
-        <input id="username" placeholder="Choisis un pseudo...">
-        <div class="actions">
-          <button id="btnSetName" class="btn">Valider pseudo</button>
-          <div style="flex:1"></div>
-          <label class="muted">Code length</label>
-          <select id="codeLen" style="background:transparent;color:var(--accent);">
-            <option value="4">4 caractères</option>
-            <option value="6" selected>6 caractères</option>
-          </select>
-        </div>
+<input type="text" id="username" placeholder="Ton pseudo">
+<button id="registerBtn">Valider</button>
 
-        <hr style="border:none;height:12px">
+<input type="text" id="search" placeholder="Nom du destinataire">
+<div class="user-list" id="userList"></div>
 
-        <label class="muted">Rechercher un utilisateur</label>
-        <div class="search">
-          <input id="search" placeholder="Tape le pseudo de la personne...">
-          <button id="btnRefresh" class="btn">Actualiser</button>
-        </div>
+<input type="file" id="fileInput">
+<button id="sendBtn">Envoyer</button>
 
-        <div class="user-list card" id="users"></div>
-      </div>
+<div class="popup" id="popup">
+    <p id="popupText"></p>
+    <button id="copyCode">Copier</button>
+    <button id="closePopup">Fermer</button>
+</div>
 
-      <div class="col card">
-        <label class="muted">Fichier à envoyer</label>
-        <input id="fileInput" type="file">
-        <div style="margin-top:12px">
-          <label class="muted">Nom du fichier (optionnel)</label>
-          <input id="presetName" placeholder="Nom visible par le destinataire">
-        </div>
+<script>
+const SIGNALING_SERVER = "ws://192.168.1.51:8080"; // ton IP locale
+let ws = new WebSocket(SIGNALING_SERVER);
 
-        <div class="actions">
-          <button id="btnSend" class="btn" disabled>Envoyer</button>
-          <div id="selUser" style="font-size:13px;color:var(--muted);align-self:center">Aucun destinataire</div>
-        </div>
+let username = "";
+let users = [];
+let fileToSend = null;
 
-        <div style="margin-top:12px">
-          <div class="muted">Progression</div>
-          <div class="progress" style="margin-top:8px"><i id="progressBar"></i></div>
-          <div id="progressText" class="muted" style="margin-top:6px">0%</div>
-        </div>
+ws.onopen = () => console.log("Connecté au serveur de signalisation");
 
-        <hr style="border:none;height:12px">
-        <div class="muted">Mode d'hébergement</div>
-        <div class="muted" style="font-size:13px">Front-end static prêt pour GitHub Pages. Un petit serveur de signalisation WebSocket est requis pour faire se rencontrer les pairs (je fournis le code serveur ci‑dessous).</div>
-      </div>
-    </div>
-
-    <footer>Les connexions WebRTC sont chiffrées. Le code à 4/6 caractères est généré aléatoirement avec des MAJUSCULES et des chiffres.</footer>
-  </div>
-
-  <!-- POPUP TEMPLATE -->
-  <div id="popup" class="popup" style="display:none">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-      <strong id="popupTitle">Demande de transfert</strong>
-      <button id="popupClose" class="btn">Fermer</button>
-    </div>
-    <div class="muted">Code de vérification</div>
-    <div style="margin:8px 0"><span class="code" id="popupCode">AB12CD</span></div>
-    <div style="display:flex;gap:8px">
-      <button id="popupCopy" class="btn">Copier</button>
-      <button id="popupAccept" class="btn">Accepter (download)</button>
-    </div>
-  </div>
-
-  <script>
-    /********************* CONFIG ************************/
-    // URL du serveur de signalisation (WebSocket). Remplace par ton endpoint
-    // Exemple: wss://ton-serveur-signaling.example
-    const SIGNALING_SERVER = ''; // <-- mettre l'URL si tu as déployé le serveur
-    /*******************************************************/
-
-    // util
-    function uuidv4(){return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g,c=>(c^crypto.getRandomValues(new Uint8Array(1))[0]&15>>c/4).toString(16));}
-    function randCode(len){const chars='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';let s='';for(let i=0;i<len;i++) s+=chars.charAt(Math.floor(Math.random()*chars.length));return s}
-
-    // elements
-    const usernameInput = document.getElementById('username');
-    const btnSetName = document.getElementById('btnSetName');
-    const usersDiv = document.getElementById('users');
-    const search = document.getElementById('search');
-    const btnRefresh = document.getElementById('btnRefresh');
-    const fileInput = document.getElementById('fileInput');
-    const presetName = document.getElementById('presetName');
-    const btnSend = document.getElementById('btnSend');
-    const selUser = document.getElementById('selUser');
-    const codeLen = document.getElementById('codeLen');
-    const progressBar = document.getElementById('progressBar');
-    const progressText = document.getElementById('progressText');
-
-    const popup = document.getElementById('popup');
-    const popupTitle = document.getElementById('popupTitle');
-    const popupCode = document.getElementById('popupCode');
-    const popupCopy = document.getElementById('popupCopy');
-    const popupClose = document.getElementById('popupClose');
-    const popupAccept = document.getElementById('popupAccept');
-
-    // state
-    const clientId = uuidv4();
-    let ws = null;
-    let myName = '';
-    let users = {}; // clientId -> {name, id}
-    let selectedTarget = null;
-
-    // WebRTC state
-    let pc = null;
-    let dataChannel = null;
-    let fileToSend = null;
-    let fileReader = null;
-
-    // ----- Signaling helper (WebSocket relay) -----
-    function connectWS(){
-      if(!SIGNALING_SERVER){console.warn('Aucun SIGNALING_SERVER configuré — le frontend a besoin d\'un serveur de signalisation pour fonctionner entre réseaux. Voir la section "serveur" dans le fichier.');return}
-      ws = new WebSocket(SIGNALING_SERVER);
-      ws.onopen = ()=>{console.log('WS ouvert'); sendWS({type:'announce', id:clientId, name:myName});};
-      ws.onmessage = e=>{const msg=JSON.parse(e.data);handleSignal(msg)};
-      ws.onclose = ()=>{console.log('WS fermé');setTimeout(()=>connectWS(),1500)};
-      ws.onerror = (err)=>console.error('WS err',err);
+ws.onmessage = (message) => {
+    let data = JSON.parse(message.data);
+    if(data.type === "user-list") {
+        users = data.list;
+        updateUserList();
     }
-    function sendWS(obj){ if(!ws) return; ws.send(JSON.stringify(obj)); }
-
-    // ----- Handle signaling messages from server -----
-    async function handleSignal(msg){
-      const t = msg.type;
-      if(t==='userlist'){ users = {}; for(const u of msg.users) if(u.id!==clientId) users[u.id]=u; renderUsers(); }
-      if(t==='invite'){ // on reçoit une demande d'envoi -> on génère le code et affiche popup
-        const from = msg.from; popupTitle.textContent = `${msg.fromName} veut t'envoyer un fichier`;
-        const generated = randCode(Number(codeLen.value));
-        popupCode.textContent = generated;
-        popup.style.display='block';
-        // envoi du code au serveur (pour vérif côté expéditeur)
-        sendWS({type:'invite_code', to:from, from:clientId, code:generated});
-      }
-      if(t==='invite_cancel'){ popup.style.display='none'; }
-      if(t==='offer'){ // offer SDP reçue
-        await ensurePeer();
-        await pc.setRemoteDescription(new RTCSessionDescription(msg.offer));
-        // create answer
-        const answer = await pc.createAnswer();
-        await pc.setLocalDescription(answer);
-        sendWS({type:'answer', to:msg.from, from:clientId, answer:answer});
-      }
-      if(t==='answer'){ if(pc){ pc.setRemoteDescription(new RTCSessionDescription(msg.answer)); } }
-      if(t==='candidate'){ if(pc){ pc.addIceCandidate(new RTCIceCandidate(msg.candidate)).catch(()=>{}); } }
-      if(t==='invite_verified'){ // le destinataire a généré un code et le serveur a confirmé que l'expéditeur a tapé le bon code
-        // on démarre l'offre webrtc
-        startOffer(msg.to);
-      }
-      if(t==='file-meta'){ // on nous annonce métadonnées du fichier (nom, taille)
-        popupTitle.textContent = `Fichier reçu : ${msg.name} (${msg.size} bytes)`;
-      }
+    if(data.type === "code") {
+        showPopup(data.code);
     }
+};
 
-    // ----- UI actions -----
-    btnSetName.addEventListener('click', ()=>{
-      const v = usernameInput.value.trim(); if(!v) return alert('Choisis un pseudo'); myName = v; selUser.textContent = 'Aucun destinataire';
-      if(SIGNALING_SERVER) connectWS(); else alert('Aucun serveur de signalisation configuré : tu pourras utiliser le mode local (configurer serveur sur ton PC).');
-      buttonState();
-      // if SIGNALING_SERVER is empty, user can still test locally by running the server on PC and setting SIGNALING_SERVER in the code.
-    });
-
-    btnRefresh.addEventListener('click', ()=>{ sendWS({type:'request_list', id:clientId, name:myName}); });
-
-    function renderUsers(){ usersDiv.innerHTML=''; const q = search.value.trim().toLowerCase(); Object.keys(users).forEach(id=>{
-      const u = users[id]; if(q && !u.name.toLowerCase().includes(q)) return; const el = document.createElement('div');el.className='user';
-      el.innerHTML = `<div><div class='name'>${u.name}</div><div class='meta'>${u.id.substring(0,6)}</div></div><div><button class='btn' data-id='${id}'>Choisir</button></div>`;
-      usersDiv.appendChild(el);
-      el.querySelector('button').addEventListener('click', ()=>{ selectedTarget = id; selUser.textContent = u.name + ' ('+id.substring(0,6)+')'; buttonState(); });
-    });
+document.getElementById("registerBtn").onclick = () => {
+    username = document.getElementById("username").value.trim();
+    if(username) {
+        ws.send(JSON.stringify({ type:"register", username }));
+        alert("Pseudo enregistré : " + username);
     }
+};
 
-    search.addEventListener('input', renderUsers);
-
-    fileInput.addEventListener('change', ()=>{ fileToSend = fileInput.files[0]; buttonState(); });
-    function buttonState(){ btnSend.disabled = !(myName && selectedTarget && fileToSend); }
-
-    // ----- Sending workflow -----
-    btnSend.addEventListener('click', ()=>{
-      if(!selectedTarget || !fileToSend) return alert('Sélectionne destinataire + fichier');
-      // send an "invite" request: the recipient will generate a code and display it
-      sendWS({type:'invite_request', from:clientId, to:selectedTarget, fromName:myName, name:fileToSend.name, size:fileToSend.size});
-      alert('Invitation envoyée — attends que le destinataire génère le code et le colle ici.');
-      // show a prompt for user to enter the code shown on the destinataire
-      const wantedLen = Number(codeLen.value);
-      const typed = prompt('Entre le code affiché sur l\'écran du destinataire (respecte MAJUSCULES) :');
-      if(!typed){ sendWS({type:'invite_cancel', to:selectedTarget, from:clientId}); return }
-      // ask server to verify the code (server will compare)
-      sendWS({type:'verify_code', from:clientId, to:selectedTarget, code:typed});
-    });
-
-    // ----- WebRTC setup -----
-    async function ensurePeer(){ if(pc) return; pc = new RTCPeerConnection({iceServers:[{urls:['stun:stun.l.google.com:19302']}]});
-      pc.onicecandidate = e=>{ if(e.candidate) sendWS({type:'candidate', to:signalingTarget, from:clientId, candidate:e.candidate}); };
-      pc.ondatachannel = ev=>{ dataChannel = ev.channel; setupDataChannel(); };
-    }
-
-    let signalingTarget = null;
-    async function startOffer(targetId){
-      signalingTarget = targetId;
-      await ensurePeer();
-      dataChannel = pc.createDataChannel('file');
-      setupDataChannel();
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
-      sendWS({type:'offer', to:targetId, from:clientId, offer:offer});
-      // send file metadata so receiver can show name/size
-      sendWS({type:'file-meta', to:targetId, from:clientId, name: presetName.value || fileToSend.name, size: fileToSend.size});
-    }
-
-    function setupDataChannel(){
-      dataChannel.onopen = ()=>{
-        console.log('DC open'); if(dataChannel.readyState==='open' && fileToSend) sendFile(fileToSend);
-      };
-      dataChannel.onmessage = e=>{ // receiver side messages -> file chunks or control
-        if(typeof e.data === 'string'){ console.log('msg', e.data); }
-      };
-    }
-
-    // send file in chunks
-    function sendFile(file){
-      const chunkSize = 16*1024; let offset=0;
-      fileReader = new FileReader();
-      fileReader.addEventListener('error', err=>console.error('Read error', err));
-      fileReader.addEventListener('load', e=>{
-        dataChannel.send(e.target.result);
-        offset += e.target.result.byteLength;
-        const percent = Math.floor((offset/file.size)*100);
-        progressBar.style.width = percent + '%'; progressText.textContent = percent + '%';
-        if(offset < file.size) readSlice(offset);
-        else { console.log('Envoyé'); }
-      });
-      function readSlice(o){ const slice = file.slice(o, o+chunkSize); fileReader.readAsArrayBuffer(slice); }
-      readSlice(0);
-    }
-
-    // popup actions for receiver
-    popupCopy.addEventListener('click', ()=>{ navigator.clipboard.writeText(popupCode.textContent).then(()=>alert('Code copié')); });
-    popupClose.addEventListener('click', ()=>{ popup.style.display='none'; });
-    popupAccept.addEventListener('click', ()=>{
-      // accept: create peer connection and wait for datachannel
-      popup.style.display='none'; ensurePeer();
-    });
-
-    // initial render
-    renderUsers();
-
-    /* ==================
-       IMPORTANT
-       - Ce frontend attend un serveur de signalisation WebSocket pour relayer les messages
-       - Ci‑dessous tu trouveras un exemple de serveur Node.js (WebSocket relay minimal). Héberge-le
-         localement sur ton PC (même réseau / hotspot) pour tester, ou déploie-le sur un service
-         gratuit (Railway, Render, Deno Deploy, etc.).
-       - Pour GitHub Pages : uploade uniquement ce fichier HTML (sans serveur) puis déploie le serveur
-         de signalisation séparément. Dans ce fichier, configure la const SIGNALING_SERVER = 'wss://...'.
-       ==================*/
-
-  </script>
-
-  <!-- ================== Exemple simple de serveur de signalisation (Node.js) ==================
-       Copie ce fichier dans server.js et fais :
-         npm init -y
-         npm i ws
-         node server.js
-
-       C'est un relais minimal : il tient une map clientId -> ws et relaie les messages.
-  ==========================================================================================
-
-  // server.js (Node.js) -----------------------------------------------
-  /*
-  const WebSocket = require('ws');
-  const wss = new WebSocket.Server({port: 8080});
-  const clients = new Map();
-
-  function broadcastUserList(){
-    const users = Array.from(clients, ([id, obj])=>({id, name: obj.name || 'Anonyme'}));
-    const msg = JSON.stringify({type:'userlist', users});
-    for(const [id, obj] of clients) obj.ws.send(msg);
-  }
-
-  wss.on('connection', function connection(ws){
-    let id = null;
-    ws.on('message', function message(data){
-      try{ const m = JSON.parse(data);
-        if(m.type==='announce'){ id = m.id; clients.set(id,{ws, name:m.name}); broadcastUserList(); return }
-        if(m.type==='request_list'){ broadcastUserList(); return }
-        // direct messaging
-        if(m.to && clients.has(m.to)){
-          const target = clients.get(m.to).ws;
-          target.send(JSON.stringify(m));
+function updateUserList() {
+    const listDiv = document.getElementById("userList");
+    listDiv.innerHTML = "";
+    users.forEach(u => {
+        if(u !== username) {
+            const div = document.createElement("div");
+            div.className = "user";
+            div.textContent = u;
+            div.onclick = () => document.getElementById("search").value = u;
+            listDiv.appendChild(div);
         }
-        // if message doesn't specify 'to', you can broadcast or ignore
-      }catch(e){console.error('err parse',e)}
     });
-    ws.on('close', ()=>{ if(id && clients.has(id)) clients.delete(id); broadcastUserList(); });
-  });
-  console.log('Signaling server WS running on ws://localhost:8080');
-  */
+}
+
+document.getElementById("fileInput").onchange = (e) => {
+    fileToSend = e.target.files[0];
+};
+
+document.getElementById("sendBtn").onclick = () => {
+    const dest = document.getElementById("search").value.trim();
+    if(dest && fileToSend) {
+        const code = Math.random().toString(36).substring(2,8).toUpperCase();
+        ws.send(JSON.stringify({ type:"code", to: dest, code }));
+        alert("Code envoyé : " + code);
+    } else alert("Choisis un destinataire et un fichier !");
+};
+
+function showPopup(code) {
+    const popup = document.getElementById("popup");
+    document.getElementById("popupText").textContent = "Code : " + code;
+    popup.style.display = "block";
+    document.getElementById("copyCode").onclick = () => navigator.clipboard.writeText(code);
+    document.getElementById("closePopup").onclick = () => popup.style.display = "none";
+}
+</script>
 
 </body>
 </html>
